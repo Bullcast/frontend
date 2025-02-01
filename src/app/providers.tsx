@@ -2,7 +2,9 @@
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
 import { getFullnodeUrl } from '@mysten/sui/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { Provider as UIProvider } from '@/components/ui/provider';
+
 const { networkConfig } = createNetworkConfig({
     localnet: { url: getFullnodeUrl('localnet') },
     mainnet: { url: getFullnodeUrl('mainnet') },
@@ -18,7 +20,7 @@ export default function Provider({
         <QueryClientProvider client={queryClient}>
             <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
                 <WalletProvider>
-                    <UIProvider>{children}</UIProvider>
+                    <UIProvider forcedTheme='dark'>{children}</UIProvider>
                 </WalletProvider>
             </SuiClientProvider>
         </QueryClientProvider>
