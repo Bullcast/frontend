@@ -80,11 +80,9 @@ export const Chatbox: React.FC<Props> = (props) => {
 
 interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
-    funcs?: {
-    }
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
-    const { message, funcs } = props;
+    const { message } = props;
 
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
