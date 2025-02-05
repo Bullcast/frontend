@@ -19,6 +19,7 @@ export const Chatbox: React.FC<Props> = (props) => {
     const InputImage = React.memo(() => (
         <Icon as={FaRegImage} color={"fg.muted"} size={"md"} />
     ));
+    InputImage.displayName = "InputImage";
 
     const NoticeMessages = React.memo(() => (
         <Flex justify={'center'} align={'center'} color={'fg.muted'} direction={'column'} gap={'1'}>
@@ -30,6 +31,7 @@ export const Chatbox: React.FC<Props> = (props) => {
             </Text>
         </Flex>
     ));
+    NoticeMessages.displayName = "NoticeMessages";
 
     return (
         <Flex {...props} w={'full'} h={'full'} direction={'column'} gap={'6'} overflow={'hidden'}>
@@ -54,6 +56,7 @@ export const Chatbox: React.FC<Props> = (props) => {
                                     </Icon>
                                 </HStack>
                             }
+                            bg={'bg.muted'}
                         >
                             <Input
                                 w={'full'}
@@ -80,11 +83,9 @@ export const Chatbox: React.FC<Props> = (props) => {
 
 interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
-    funcs?: {
-    }
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
-    const { message, funcs } = props;
+    const { message } = props;
 
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
@@ -113,6 +114,7 @@ const MessageUser: React.FC<MessageUserProps> = (props) => {
         </Flex>
     );
 }
+MessageUser.displayName = "MessageUser";
 
 interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
@@ -160,6 +162,7 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
         </Flex>
     );
 }
+MessageBot.displayName = "MessageBot";
 
 interface MessageToolsProps extends React.HTMLAttributes<HTMLDivElement> {
     copyContent: string;
@@ -182,3 +185,4 @@ const MessageTools: React.FC<MessageToolsProps> = (props) => {
         </Flex>
     );
 }
+MessageTools.displayName = "MessageTools";
