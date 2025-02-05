@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/molecules";
-import { Container, Flex } from "@chakra-ui/react";
+import { Flex } from "@chakra-ui/react";
 import { UserPredictionCard } from "./_components/UserPredictionCard";
 import { SocialPostCard } from "./_components/SocialPostCard";
 

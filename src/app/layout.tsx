@@ -24,13 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${plusJakartaSans.variable}`}>
+      <body className={`${plusJakartaSans.variable}`} style={{
+        height: "100vh",
+        overflow: "hidden",
+      }}>
         <Provider>
-          <Flex direction="column" minH="100vh" gap={"6"} p="4">
+          <Flex direction="column" height="100%" overflow={"hidden"} gap={"6"} p="4">
             <Navbar />
-            <Flex direction="column" flex="1">
-              {children}
-            </Flex>
+            {children}
           </Flex>
         </Provider>
       </body>
