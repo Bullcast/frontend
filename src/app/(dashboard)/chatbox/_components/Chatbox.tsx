@@ -8,7 +8,6 @@ import { FaRegImage } from 'react-icons/fa';
 import { IoCopyOutline, IoReload } from 'react-icons/io5';
 import Markdown from 'react-markdown'
 
-import { Logo } from '@/components/brand';
 import { InputGroup } from '@/components/ui/input-group';
 import { formatTime } from '@/libs/helper';
 

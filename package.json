@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen-types": "npx @chakra-ui/cli typegen ./theme.ts"
+    "gen-types": "npx @chakra-ui/cli typegen ./theme.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^0.1.8",
