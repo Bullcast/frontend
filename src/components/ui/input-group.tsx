@@ -31,7 +31,7 @@ export const InputGroup = React.forwardRef<HTMLDivElement, InputGroupProps>(
     return (
       <Group ref={ref} {...rest}>
         {startElement && (
-          <InputElement pointerEvents="none" {...startElementProps}>
+          <InputElement ml={"2"} pointerEvents="none" {...startElementProps}>
             {startElement}
           </InputElement>
         )}
