@@ -10,6 +10,8 @@ import Markdown from 'react-markdown'
 
 import { InputGroup } from '@/components/ui/input-group';
 import { formatTime } from '@/libs/helper';
+import { Logo } from '@/components/brand';
+import { APP_NAME } from '@/utils/constants';
 
 interface Props extends FlexProps { }
 export const Chatbox: React.FC<Props> = (props) => {
@@ -126,6 +128,26 @@ interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
 const MessageBot: React.FC<MessageBotProps> = (props) => {
     const { message, error, funcs } = props;
 
+    const BotAvatar = () => {
+        return (
+            <Group>
+                <Icon
+                    size={'md'}
+                    borderRadius={'full'}
+                    borderColor={'primary.5'}
+                    borderWidth={'1px'}
+                    bg={'bg.muted'}
+                    p={'1'}
+                >
+                    <Logo />
+                </Icon>
+                <Text fontSize={'md'} color={'fg'} fontWeight={'bold'}>
+                    {APP_NAME}
+                </Text>
+            </Group>
+        )
+    }
+
     return (
         <Flex direction={'column'} gap={'1'} justify={"flex-start"} {...props}>
             <Box
@@ -138,9 +160,24 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                 {...props}
             >
                 <Box color={'fg'} textAlign={'left'}>
+                    <BotAvatar />
                     <Markdown>
                         {message.content}
                     </Markdown>
+                    {message.experimental_attachments && (
+                        <Box>
+                            {message.experimental_attachments.map((attachment, index) => (
+                                <Box key={index}>
+                                    <Text color={'fg.muted'}>
+                                        {attachment.contentType}
+                                    </Text>
+                                    <Text color={'fg'}>
+                                        {attachment.url}
+                                    </Text>
+                                </Box>
+                            ))}
+                        </Box>
+                    )}
                 </Box>
             </Box>
             {
