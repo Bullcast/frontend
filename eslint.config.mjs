@@ -14,6 +14,7 @@ const eslintConfig = [
   {
     rules: {
       "@typescript-eslint/no-empty-interface": "off",
+      
       "@typescript-eslint/ban-types": ["error", { "types": { "{}": false } }],
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       "@typescript-eslint/no-explicit-any": "off",
