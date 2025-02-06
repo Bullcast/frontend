@@ -1,12 +1,16 @@
 'use client';
 
-import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Text } from '@chakra-ui/react';
+import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Link, Text } from '@chakra-ui/react';
 import { useChat, Message } from 'ai/react';
 import React from 'react';
 import { BiPaperPlane } from 'react-icons/bi';
 import { FaRegImage } from 'react-icons/fa';
 import { IoCopyOutline, IoReload } from 'react-icons/io5';
 import Markdown from 'react-markdown'
+import RemarkGfm from 'remark-gfm';
+import RehypeRaw from 'rehype-raw';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 import { InputGroup } from '@/components/ui/input-group';
 import { formatTime } from '@/libs/helper';
@@ -148,6 +152,35 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
         )
     }
 
+    const MessageRender = () => {
+        return (
+            <Markdown
+                remarkPlugins={[RemarkGfm]}
+                rehypePlugins={[RehypeRaw]}
+                components={{
+                    a: ({ node, ...props }) => (
+                        <Link color={'primary'} {...props} target='_blank' textDecoration={'underline'} />
+                    ),
+                    code: ({ node, className, children, ...rest }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return match ? (
+                            <SyntaxHighlighter
+                                PreTag="div"
+                                children={String(children).replace(/\n$/, '')}
+                                language={match[1]}
+                                style={dark}
+                            />
+                        ) : (
+                            <code className={className} {...rest}>
+                                {children}
+                            </code>
+                        );
+                    },
+                }}>
+                {message.content}
+            </Markdown >
+        )
+    }
     return (
         <Flex direction={'column'} gap={'1'} justify={"flex-start"} {...props}>
             <Box
@@ -161,22 +194,11 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
             >
                 <Box color={'fg'} textAlign={'left'}>
                     <BotAvatar />
-                    <Markdown>
-                        {message.content}
-                    </Markdown>
+                    <MessageRender />
                     {message.experimental_attachments && (
-                        <Box>
-                            {message.experimental_attachments.map((attachment, index) => (
-                                <Box key={index}>
-                                    <Text color={'fg.muted'}>
-                                        {attachment.contentType}
-                                    </Text>
-                                    <Text color={'fg'}>
-                                        {attachment.url}
-                                    </Text>
-                                </Box>
-                            ))}
-                        </Box>
+                        message.experimental_attachments.map((attachment, index) => (
+                            <MessageAttachment key={index} attachment={attachment} />
+                        ))
                     )}
                 </Box>
             </Box>
@@ -223,3 +245,21 @@ const MessageTools: React.FC<MessageToolsProps> = (props) => {
     );
 }
 MessageTools.displayName = "MessageTools";
+
+interface MessageAttachmentProps extends React.HTMLAttributes<HTMLDivElement> {
+    attachment: NonNullable<Message['experimental_attachments']>[number]
+}
+const MessageAttachment: React.FC<MessageAttachmentProps> = (props) => {
+    const { attachment } = props;
+
+    return (
+        <Box {...props}>
+            <Text>
+                {attachment.contentType}
+            </Text>
+            <Text>
+                {attachment.url}
+            </Text>
+        </Box>
+    );
+}
