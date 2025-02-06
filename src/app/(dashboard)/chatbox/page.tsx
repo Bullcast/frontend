@@ -9,7 +9,7 @@ import { RightPanel } from "./_components/RightPanel";
 
 export default function Prediction() {
     return (
-        <Flex direction={"column"} flex="1" overflow={"hidden"}>
+        <Flex direction={"column"} flex="1" overflow={"hidden"} gap={"6"}>
             <PageHeader title="Chatbox" />
             <main className={styles.main}>
                 <Flex direction={"row"} flex="1" gap={"6"}>

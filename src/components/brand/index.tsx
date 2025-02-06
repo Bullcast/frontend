@@ -153,6 +153,7 @@ export const Logo: React.FC<LogoProps> = (props) => {
 
 interface FaviconProps extends React.HTMLAttributes<HTMLDivElement> { }
 export const Favicon: React.FC<FaviconProps> = (props) => {
+  
   return (
     <Box {...props}>
       <Text fontSize="2xl" fontWeight="bold">

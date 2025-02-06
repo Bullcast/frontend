@@ -1,11 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Container, ContainerProps } from "@chakra-ui/react";
+import { Container, ContainerProps, Flex, Icon } from "@chakra-ui/react";
+import { IoAddOutline } from "react-icons/io5";
 
 interface Props extends ContainerProps { }
 export const RightPanel: React.FC<Props> = (props) => {
     return (
         <Container as="aside" {...props}>
-            <Button>Button</Button>
+            <Flex justify="end" align="start" h="full">
+                <Button>
+                    Add new chat
+                    <Icon size={"md"}>
+                        <IoAddOutline />
+                    </Icon>
+                </Button>
+            </Flex>
         </Container>
     );
 }
