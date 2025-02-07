@@ -1,6 +1,6 @@
 "use client";
 
-import { Group, Image } from "@chakra-ui/react"
+import { Box, Group, Image } from "@chakra-ui/react"
 import { DotLottieReact, DotLottieWorkerReact } from "@lottiefiles/dotlottie-react"
 
 import styles from "../page.module.css"
@@ -19,16 +19,14 @@ export const Wallpaper: React.FC<Props> = (props) => {
             pointerEvents={"none"}
             {...props}
         >
-            {/* <video autoPlay muted loop id="pp-grid-video-bg" preload="auto">
-                <source src="/pp-grid-video-bg.webm" type="video/webm" />
-                Your browser does not support the video tag.
-            </video> */}
-            {/* <Image
-                src="/pp-grid-video-bg.gif"
-                alt="Wallpaper"
-                objectFit="cover"
-                w="full"
-            /> */}
+            <Box
+                position={"absolute"}
+                bottom={0}
+                left={0}
+                w={"50vw"}
+                aspectRatio={1 / 2}
+                bgGradient={"linear(to-r, primary, secondary)"}
+            />
             <DotLottieReact
                 src="https://lottie.host/59e493c1-208f-40a4-90a1-c119a2eea102/QozLBTlxgn.lottie"
                 loop
