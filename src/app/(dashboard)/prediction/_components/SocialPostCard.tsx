@@ -69,7 +69,7 @@ export const SocialPostCard: React.FC<props> = (props) => {
             w={"full"}
             maxW={"72"}
             bg={"rgba(255, 255, 255, 0.05)"}
-            backdropBlur={"md"}
+            backdropFilter={"blur(12px)"}
             borderLeftColor={"primary"}
             borderLeftWidth={"medium"}
             borderRadius={"lg"}

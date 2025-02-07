@@ -4,6 +4,7 @@ type User = {
     name: string;
     avatar: string;
     rank: number;
+    percentage: number;
 };
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
@@ -16,6 +17,7 @@ export const UserPredictionCard: React.FC<Props> = (props) => {
         name: "John Doe",
         avatar: "https://miro.medium.com/v2/resize:fit:740/1*ooOH6jo8I0ns0J-BE0SAow.jpeg",
         rank: [1, 2, 3][Math.floor(Math.random() * 3)],
+        percentage: Math.random() * 100,
     };
 
     return (
@@ -35,14 +37,24 @@ export const UserPredictionCard: React.FC<Props> = (props) => {
                 </Flex>
                 <ChakraImage
                     borderRadius={"full"}
-                    w={"16"}
-                    h={"16"}
+                    w={"32"}
+                    h={"32"}
                     src={user.avatar}
                     alt={user.name}
                 />
                 <Heading size="2xl" fontWeight={"bold"}>
                     {user.name}
                 </Heading>
+                <Box
+                    bgImage={"url(/pp-cut-rect-bg.png)"}
+                    bgSize={"cover"}
+                    bgPos={"center"}
+                    bgRepeat={"no-repeat"}
+                >
+                    <Text fontSize={"2xl"} fontWeight={"bold"} color={"primary"}>
+                        {user.percentage.toFixed(2)}%
+                    </Text>
+                </Box>
             </Flex>
         </div>
     );
