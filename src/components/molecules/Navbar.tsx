@@ -1,4 +1,4 @@
-import { Box, Container, Flex, VisuallyHidden, Link as ChakraLink } from "@chakra-ui/react"
+import { Box, Container, Flex, VisuallyHidden, Link as ChakraLink, Icon } from "@chakra-ui/react"
 import Link from "next/link"
 
 import { Logo } from "../brand"
@@ -29,7 +29,9 @@ export const Navbar: React.FC<Props> = (props) => {
                     <Box flex={1}>
                         <ChakraLink as={Link} href="/" display="flex">
                             <VisuallyHidden>Home</VisuallyHidden>
-                            <Logo />
+                            <Icon size={"2xl"}>
+                                <Logo />
+                            </Icon>
                         </ChakraLink>
                     </Box>
                     <Flex align="center" gap={"6"} flex={2} justify="center">
