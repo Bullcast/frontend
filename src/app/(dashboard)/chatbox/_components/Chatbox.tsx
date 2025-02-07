@@ -179,19 +179,21 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                         return match ? (
                             <SyntaxHighlighter
                                 PreTag="div"
-                                children={String(children).replace(/\n$/, '')}
                                 language={match[1]}
                                 style={dark}
-                            />
+                            >
+                                {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
                         ) : (
                             <code className={className} {...rest}>
                                 {children}
                             </code>
                         );
                     },
-                }}>
+                }}
+            >
                 {message.content}
-            </Markdown >
+            </Markdown>
         )
     }
     return (
