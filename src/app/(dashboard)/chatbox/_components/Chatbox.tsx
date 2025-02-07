@@ -304,7 +304,9 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                     transition: 'all 0.3s',
                 }}
                 onClick={() => {
-                    handleInputChange && handleInputChange({ target: { value: demoContent } } as any);
+                    if (handleInputChange) {
+                        handleInputChange({ target: { value: demoContent } } as any);
+                    }
                 }}
                 {...props}
             >
