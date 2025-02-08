@@ -1,40 +1,33 @@
-import { streamText } from 'ai';
-
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-    baseURL: 'https://api.groq.com/openai/v1',
-    apiKey: process.env.GROQ_API_KEY,
-  });
-
-export function errorHandler(error: unknown) {
-    if (error == null) {
-        return 'unknown error';
-    }
-
-    if (typeof error === 'string') {
-        return error;
-    }
-
-    if (error instanceof Error) {
-        return error.message;
-    }
-
-    return JSON.stringify(error);
-}
+import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
-    const { messages } = await req.json();
+    const { messages, wallet } = await req.json();
 
+    if (!messages || !messages.length) {
+        return NextResponse.error();
+    }   
+    
+    const apiUrl = process.env.AGENT_API_URL;
 
-    const result = streamText({
-        model: groq('llama-3.3-70b-versatile'),
-        system: 'You are a helpful assistant.',
-        messages,
-      });
+    if (!apiUrl) {
+        return NextResponse.error();
+    }
+
+    const result = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            text: messages[messages.length - 1].content,
+            from: wallet,
+        }),
+    }).then((res) => res.json());
     
 
-    return result.toDataStreamResponse({
-        getErrorMessage: errorHandler,
-    });
+    return NextResponse.json(result.map((item: any) => ({
+        content: item.text,
+        role: 'assistant',
+        ptb: item.payload
+    })));
 }
