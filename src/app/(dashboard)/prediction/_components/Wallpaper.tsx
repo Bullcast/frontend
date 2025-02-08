@@ -34,6 +34,7 @@ export const Wallpaper: React.FC<Props> = (props) => {
                 width={"100%"}
                 height={"100%"}
                 speed={0.5}
+                mode="reverse"
                 renderConfig={{
                     devicePixelRatio: 1,
                     autoResize: true,
