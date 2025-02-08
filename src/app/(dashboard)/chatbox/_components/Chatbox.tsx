@@ -74,17 +74,18 @@ export const Chatbox: React.FC<Props> = (props) => {
                     const ptb = Buffer.from(data[i].ptb);
                     const payloadUint8Array = new Uint8Array(ptb);
                     const tx = Transaction.from(payloadUint8Array);
+                    tx.setGasBudget(150000000);
                     signAndExecuteTransaction(
                         {
                             transaction: tx,
                         },
                         {
                             onSuccess: (result) => {
-                                console.log('Transaction executed:', result.digest);
+                                console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
                                 setMessages(prev => [...prev, {
                                     id: messages.length ? messages[messages.length - 1].id + 1 : 0,
                                     role: 'assistant',
-                                    content: 'Transaction executed successfully. ' + result.digest,
+                                    content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
                                 }]);
                             },
                         },
