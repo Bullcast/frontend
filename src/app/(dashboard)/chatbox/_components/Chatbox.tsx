@@ -105,7 +105,6 @@ interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
     const { message } = props;
-
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
             <Box
