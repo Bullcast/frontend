@@ -1,11 +1,10 @@
 'use client';
 
-import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Link, Span, Text } from '@chakra-ui/react';
+import { Box, Center, Flex, Group, HStack, Icon, IconButton, Input, Link, Span, Spinner, Text } from '@chakra-ui/react';
 import { useChat, Message } from 'ai/react';
 import React from 'react';
-import { BiPaperPlane } from 'react-icons/bi';
-import { FaRegImage } from 'react-icons/fa';
-import { IoCopyOutline, IoReload } from 'react-icons/io5';
+import { FaPaperPlane, FaRegImage } from 'react-icons/fa';
+import { IoCopyOutline, IoReload, IoStop } from 'react-icons/io5';
 import { MdOutlineLocalFireDepartment, MdOutlineRocket } from 'react-icons/md';
 import Markdown from 'react-markdown'
 import RemarkGfm from 'remark-gfm';
@@ -13,14 +12,16 @@ import RehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
-import { InputGroup } from '@/components/ui/input-group';
 import { formatTime } from '@/libs/helper';
 import { Logo } from '@/components/brand';
 import { APP_NAME } from '@/utils/constants';
+import { LuLink } from 'react-icons/lu';
+import { IoIosAdd } from 'react-icons/io';
+import { Tooltip } from '@/components/ui/tooltip';
 
-interface Props extends FlexProps { }
+interface Props extends React.HTMLAttributes<HTMLDivElement> { }
 export const Chatbox: React.FC<Props> = (props) => {
-    const { messages, input, handleSubmit, handleInputChange, isLoading, error, reload, setMessages } =
+    const { messages, input, handleSubmit, handleInputChange, isLoading, error, reload, setMessages, stop } =
         useChat();
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -35,68 +36,119 @@ export const Chatbox: React.FC<Props> = (props) => {
                 This is the hint message to help users know how to use!
             </Text>
             <Text fontSize={'sm'}>
-                @Copyright by BullCast | 2024
+                @Copyright by BullCast | 2025
             </Text>
         </Flex>
     ));
     NoticeMessages.displayName = "NoticeMessages";
+
+    const StartElement = React.memo(() => (
+        <HStack
+            w={'fit-content'}
+            gap={2}
+            borderRadius={'md'}
+            bg={'bg.emphasized'}
+        >
+            <IconButton
+                size={"md"}
+                variant={'plain'}
+                borderRadius={"md"}
+                aria-label="Send image"
+                color={"fg.muted"}
+            >
+                <LuLink />
+            </IconButton>
+            <Tooltip
+                content={"New conversation"}
+                aria-label={"New conversation"}
+            >
+                <IconButton
+                    variant={'plain'}
+                    size={"md"}
+                    borderRadius={"md"}
+                    aria-label="Send image"
+                    onClick={() => resetAll()}
+                >
+                    <IoIosAdd />
+                </IconButton>
+            </Tooltip>
+        </HStack>
+    ));
+    StartElement.displayName = "StartElement";
+
+    const EndElement = React.memo(() => (
+        <IconButton
+            size={"md"}
+            borderRadius={"md"}
+            type="submit"
+            aria-label="Send message"
+            onClick={
+                isLoading ? stop : handleSubmit
+            }
+        >
+            {isLoading ? <IoStop /> : <FaPaperPlane />}
+        </IconButton>
+    ));
+    EndElement.displayName = "EndElement";
+
+    const resetAll = () => {
+        setMessages && setMessages([]);
+        handleInputChange({ target: { value: '' } } as any);
+    }
 
     React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     return (
-        <Flex {...props} w={'full'} h={'full'} direction={'column'} gap={'6'} overflow={'hidden'}>
-            <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"}>
-                {messages.length === 0 && (
-                    <MessageIntro
-                        handleInputChange={handleInputChange}
-                        setMessages={setMessages}
-                    />
-                )}
-                {messages.map(message => (
-                    message.role === 'user' ? (
-                        <MessageUser key={message.id} message={message} />
-                    ) : (
-                        <MessageBot key={message.id} message={message} error={error} funcs={{ reload }} />
-                    )
-                ))}
-                <div ref={messagesEndRef} />
-            </Flex>
-            <Flex direction={'column'} gap={'4'}>
-                <form onSubmit={handleSubmit}>
-                    <Group w={'full'} gap={'4'}>
-                        <InputGroup
+        <Center {...props} >
+            <Flex w={'full'} maxW={"50vw"} h={'full'} flexDirection={'column'} gap={'6'} overflow={'hidden'} align={'center'}>
+                <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"}>
+                    {messages.length === 0 && (
+                        <MessageIntro
+                            handleInputChange={handleInputChange}
+                            setMessages={setMessages}
+                        />
+                    )}
+                    {messages.map((message, index) => (
+                        message.role === 'user' ? (
+                            <MessageUser key={message.id} message={message} />
+                        ) : (
+                            <MessageBot key={message.id} message={message} error funcs={{ reload }} isLoading={isLoading && index === messages.length - 1} />
+                        )
+                    ))}
+                    <div ref={messagesEndRef} />
+                </Flex>
+                <Flex direction={'column'} gap={'4'} w={"full"}>
+                    <form onSubmit={handleSubmit}>
+                        <Group
                             w={'full'}
-                            startElement={
-                                <HStack>
-                                    <Icon>
-                                        <InputImage />
-                                    </Icon>
-                                </HStack>
-                            }
+                            gap={'4'}
                             bg={'bg.muted'}
+                            p={'2'}
+                            borderRadius={'lg'}
                         >
+                            <StartElement />
                             <Input
+                                border={'none'}
+                                _focus={{
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                bg={'transparent'}
                                 w={'full'}
                                 value={input}
-                                placeholder="Send a message..."
+                                placeholder="Ask something ..."
                                 onChange={handleInputChange}
                                 disabled={isLoading}
                             />
-                        </InputGroup>
-                        <IconButton
-                            type="submit"
-                            aria-label="Send message"
-                            loading={isLoading}
-                        >
-                            <BiPaperPlane />
-                        </IconButton>
-                    </Group>
-                </form>
-                <NoticeMessages />
+                            <EndElement />
+                        </Group>
+                    </form>
+                    <NoticeMessages />
+                </Flex>
             </Flex>
-        </Flex>
+        </Center>
     );
 }
 
@@ -137,12 +189,13 @@ MessageUser.displayName = "MessageUser";
 interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
     error: any;
+    isLoading: boolean;
     funcs: {
         reload: () => void;
     }
 }
 const MessageBot: React.FC<MessageBotProps> = (props) => {
-    const { message, error, funcs } = props;
+    const { message, error, funcs, isLoading } = props;
 
     const BotAvatar = () => {
         return (
@@ -195,6 +248,7 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
             </Markdown>
         )
     }
+
     return (
         <Flex direction={'column'} gap={'1'} justify={"flex-start"} {...props}>
             <Box
@@ -208,14 +262,28 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
             >
                 <Box color={'fg'} textAlign={'left'}>
                     <BotAvatar />
-                    <MessageRender />
-                    {message.experimental_attachments && (
-                        message.experimental_attachments.map((attachment, index) => (
-                            <MessageAttachment key={index} attachment={attachment} />
-                        ))
-                    )}
+                    {!isLoading &&
+                        <>
+                            <MessageRender />
+                            {message.experimental_attachments && (
+                                message.experimental_attachments.map((attachment, index) => (
+                                    <MessageAttachment key={index} attachment={attachment} />
+                                ))
+                            )}
+                        </>
+                    }
                 </Box>
             </Box>
+            {
+                isLoading && (
+                    <Group>
+                        <Spinner size={'md'} />
+                        <Text color={'fg.muted'}>
+                            Bullcast is thinking, please wait a moment ...
+                        </Text>
+                    </Group>
+                )
+            }
             {
                 error && (
                     <Text color={'danger'}>
@@ -332,7 +400,7 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                 <Logo />
             </Icon>
             <Text fontSize={'4xl'} fontWeight={'bold'} textAlign={'center'}>
-                Welcome to <Span color={'primary'}>{APP_NAME}</Span> AI Chatbox!
+                Welcome to <Span color={'primary'}>{APP_NAME}</Span> <br /> AI Chatbox!
             </Text>
             <Text fontSize={'md'} color={'fg.muted'} textAlign={'center'}>
                 This is the hint message to help users know how to use!

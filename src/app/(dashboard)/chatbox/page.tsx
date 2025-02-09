@@ -15,7 +15,6 @@ export default function Prediction() {
                 <Flex direction={"row"} flex="1" gap={"6"}>
                     <LeftPanel flex={1} />
                     <Chatbox flex={2} />
-                    <RightPanel flex={1} />
                 </Flex>
             </main>
         </Flex>
