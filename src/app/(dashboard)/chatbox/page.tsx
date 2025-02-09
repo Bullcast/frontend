@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/molecules";
 import { Chatbox } from "./_components/Chatbox";
 import { LeftPanel } from "./_components/LeftPanel";
 import { RightPanel } from "./_components/RightPanel";
+import { Wallpaper } from "./_components/Wallpaper";
 
 
 export default function Prediction() {
@@ -17,6 +18,7 @@ export default function Prediction() {
                     <Chatbox flex={2} />
                 </Flex>
             </main>
+            <Wallpaper />
         </Flex>
     );
 }
