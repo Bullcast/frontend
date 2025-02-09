@@ -1,8 +1,7 @@
 'use client';
 
 import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Link, Span, Text } from '@chakra-ui/react';
-import { useChat, Message } from 'ai/react';
-import React from 'react';
+import React, { useState } from 'react';
 import { BiPaperPlane } from 'react-icons/bi';
 import { FaRegImage } from 'react-icons/fa';
 import { IoCopyOutline, IoReload } from 'react-icons/io5';
@@ -12,16 +11,179 @@ import RemarkGfm from 'remark-gfm';
 import RehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { marked } from "marked";
 
 import { InputGroup } from '@/components/ui/input-group';
-import { formatTime } from '@/libs/helper';
+// import { formatTime } from '@/libs/helper';
 import { Logo } from '@/components/brand';
 import { APP_NAME } from '@/utils/constants';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+
+interface Message {
+    role: 'user' | 'assistant';  // Role to determine who sent the message
+    content: string;  // Content of the message
+    createdAt?: Date
+}
 
 interface Props extends FlexProps { }
 export const Chatbox: React.FC<Props> = (props) => {
-    const { messages, input, handleSubmit, handleInputChange, isLoading, error, reload, setMessages } =
-        useChat();
+    const [messages, setMessages] = useState<Message[]>([]); // Now TypeScript knows what type is inside messages
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const account = useCurrentAccount();
+    const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction({
+        onSuccess: (result) => {
+            console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+                createdAt: new Date(),
+            }]);
+        },
+        onError: (error) => {
+            console.error('Error:', error);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, there was an error processing your request.'
+            }]);
+        },
+    });
+    const {
+        mutate: sendMessage,
+        isPending,
+    } = useMutation({
+        mutationKey: ['sendMessage', input],
+        mutationFn: async (newMessage: Message): Promise<Message[]> => {
+            if (!newMessage.content.trim()) return [];
+            if (!account) throw new Error('Please connect your wallet to continue.');
+
+            const response = await axios.post('/api/chat', {
+                messages: [...messages, newMessage],
+                wallet: account.address,
+            })
+            return response.data;
+        },
+        onMutate: (newMessage: Message) => {
+            const userMessage: Message = {
+                role: 'user',
+                content: newMessage.content,
+                createdAt: new Date(),
+            };
+            setMessages(prev => [...prev, userMessage]);
+            setInput('');
+        },
+        onSuccess: (data: any) => {
+            for (let i = 0; i < data.length; i++) {
+                // data[i].id = messages.length ? messages[messages.length - 1].id + 1 : 0;
+                if (i + 1 < data.length && data[i].ptb) {
+                    const ptb = Buffer.from(data[i].ptb);
+                    const payloadUint8Array = new Uint8Array(ptb);
+                    const tx = Transaction.from(payloadUint8Array);
+                    tx.setGasBudget(150000000);
+                    signAndExecuteTransaction(
+                        {
+                            transaction: tx,
+                        },
+                    );
+                    delete data[i].ptb;
+                }
+            }
+
+            setMessages(prev => [...prev, ...data]);
+        },
+        onError: (error) => {
+            if (error instanceof Error) {
+                setMessages(prev => [...prev, {
+                    id: Math.random(),
+                    role: 'assistant',
+                    content: error.message || 'Sorry, there was an error processing your request.',
+                    createdAt: new Date(),
+                }]);
+            }
+        }
+    })
+
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     if (!input.trim()) return;
+
+    //     if (!account) {
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Please connect your wallet to continue.'
+    //         }]);
+    //         return;
+    //     }
+
+
+    //     const id = messages.length ? messages[messages.length - 1].id + 1 : 0;
+    //     const userMessage: Message = { id, role: 'user', content: input };
+    //     setMessages(prev => [...prev, userMessage]);
+    //     setInput('');
+    //     setIsLoading(true);
+
+    //     try {
+    //         const response = await fetch('/api/chat', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //             },
+    //             body: JSON.stringify({
+    //                 messages: [...messages, userMessage],
+    //                 wallet: account.address,
+    //             }),
+    //         });
+
+    //         if (!response.ok) throw new Error('Failed to fetch');
+
+    //         const data = await response.json();
+    //         for (let i = 0; i < data.length; i++) {
+    //             data[i].id = id + i + 1;
+    //             if (i + 1 < data.length && data[i].ptb) {
+    //                 const ptb = Buffer.from(data[i].ptb);
+    //                 const payloadUint8Array = new Uint8Array(ptb);
+    //                 const tx = Transaction.from(payloadUint8Array);
+    //                 tx.setGasBudget(150000000);
+    //                 signAndExecuteTransaction(
+    //                     {
+    //                         transaction: tx,
+    //                     },
+    //                     {
+    //                         onSuccess: (result) => {
+    //                             console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
+    //                             setMessages(prev => [...prev, {
+    //                                 id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //                                 role: 'assistant',
+    //                                 content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+    //                             }]);
+    //                         },
+    //                     },
+    //                 );
+    //                 delete data[i].ptb;
+    //             }
+    //         }
+    //         setMessages(prev => [...prev, ...data]);
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Sorry, there was an error processing your request.'
+    //         }]);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+    };
+
+
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
     const InputImage = React.memo(() => (
@@ -54,17 +216,28 @@ export const Chatbox: React.FC<Props> = (props) => {
                         setMessages={setMessages}
                     />
                 )}
-                {messages.map(message => (
-                    message.role === 'user' ? (
-                        <MessageUser key={message.id} message={message} />
-                    ) : (
-                        <MessageBot key={message.id} message={message} error={error} funcs={{ reload }} />
-                    )
-                ))}
+                {messages.map((message, index) => {
+                    console.log(message);
+                    return (
+                        message.role === 'user' ? (
+                            <MessageUser key={index} message={message} />
+                        ) : (
+                            <MessageBot key={index} message={message} />
+                        )
+                    );
+                })}
+
                 <div ref={messagesEndRef} />
             </Flex>
             <Flex direction={'column'} gap={'4'}>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage({
+                        role: 'user',
+                        content: input,
+                        createdAt: new Date(),
+                    });
+                }}>
                     <Group w={'full'} gap={'4'}>
                         <InputGroup
                             w={'full'}
@@ -82,13 +255,13 @@ export const Chatbox: React.FC<Props> = (props) => {
                                 value={input}
                                 placeholder="Send a message..."
                                 onChange={handleInputChange}
-                                disabled={isLoading}
+                                disabled={isPending}
                             />
                         </InputGroup>
                         <IconButton
                             type="submit"
                             aria-label="Send message"
-                            loading={isLoading}
+                            loading={isPending}
                         >
                             <BiPaperPlane />
                         </IconButton>
@@ -127,7 +300,7 @@ const MessageUser: React.FC<MessageUserProps> = (props) => {
                     copyContent={message.content}
                 />
                 <Text fontSize={'xs'} color={'fg.muted'}>
-                    {formatTime(message.createdAt)}
+                    {/* {formatTime(message.createdAt)} */}
                 </Text>
             </Flex>
         </Flex>
@@ -137,13 +310,9 @@ MessageUser.displayName = "MessageUser";
 
 interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
-    error: any;
-    funcs: {
-        reload: () => void;
-    }
 }
 const MessageBot: React.FC<MessageBotProps> = (props) => {
-    const { message, error, funcs } = props;
+    const { message } = props;
 
     const BotAvatar = () => {
         return (
@@ -192,7 +361,12 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                     },
                 }}
             >
-                {message.content}
+                {
+                    message.content
+                        .trim()
+                        .replace(/\n/g, '<br />')
+                        .replace(/```([a-zA-Z]+)?\n([\s\S]+?)\n```/g, '```$1\n$2\n```')
+                }
             </Markdown>
         )
     }
@@ -210,27 +384,15 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                 <Box color={'fg'} textAlign={'left'}>
                     <BotAvatar />
                     <MessageRender />
-                    {message.experimental_attachments && (
-                        message.experimental_attachments.map((attachment, index) => (
-                            <MessageAttachment key={index} attachment={attachment} />
-                        ))
-                    )}
                 </Box>
             </Box>
-            {
-                error && (
-                    <Text color={'danger'}>
-                        {error.message}
-                    </Text>
-                )
-            }
+
             <Flex justify={'start'} align={'center'} w={'full'} gap={'1'}>
                 <Text fontSize={'xs'} color={'fg.muted'}>
-                    {formatTime(message.createdAt)}
+                    {/* {formatTime(message.createdAt)} */}
                 </Text>
                 <MessageTools
                     copyContent={message.content}
-                    reload={() => funcs.reload()}
                 />
             </Flex>
         </Flex>
@@ -304,7 +466,7 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                     transition: 'all 0.3s',
                 }}
                 onClick={() => {
-                    handleInputChange && handleInputChange({ target: { value: demoContent } } as any);
+                    // handleInputChange && handleInputChange({ target: { value: demoContent } } as any);
                 }}
                 {...props}
             >
