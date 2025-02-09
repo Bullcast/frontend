@@ -1,10 +1,9 @@
 'use client';
 
-import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Link, Span, Text } from '@chakra-ui/react';
+import { Box, Center, Flex, Group, HStack, Icon, IconButton, Input, Link, Span, Spinner, Text } from '@chakra-ui/react';
 import React, { useState } from 'react';
-import { BiPaperPlane } from 'react-icons/bi';
-import { FaRegImage } from 'react-icons/fa';
-import { IoCopyOutline, IoReload } from 'react-icons/io5';
+import { FaPaperPlane, FaRegImage } from 'react-icons/fa';
+import { IoCopyOutline, IoReload, IoStop } from 'react-icons/io5';
 import { MdOutlineLocalFireDepartment, MdOutlineRocket } from 'react-icons/md';
 import Markdown from 'react-markdown'
 import RemarkGfm from 'remark-gfm';
@@ -27,8 +26,11 @@ interface Message {
     content: string;  // Content of the message
     createdAt?: Date
 }
+import { LuLink } from 'react-icons/lu';
+import { IoIosAdd } from 'react-icons/io';
+import { Tooltip } from '@/components/ui/tooltip';
 
-interface Props extends FlexProps { }
+interface Props extends React.HTMLAttributes<HTMLDivElement> { }
 export const Chatbox: React.FC<Props> = (props) => {
     const [messages, setMessages] = useState<Message[]>([]); // Now TypeScript knows what type is inside messages
     const [input, setInput] = useState('');
@@ -197,79 +199,126 @@ export const Chatbox: React.FC<Props> = (props) => {
                 This is the hint message to help users know how to use!
             </Text>
             <Text fontSize={'sm'}>
-                @Copyright by BullCast | 2024
+                @Copyright by BullCast | 2025
             </Text>
         </Flex>
     ));
     NoticeMessages.displayName = "NoticeMessages";
+
+    const StartElement = React.memo(() => (
+        <HStack
+            w={'fit-content'}
+            gap={2}
+            borderRadius={'md'}
+            bg={'bg.emphasized'}
+        >
+            <IconButton
+                size={"md"}
+                variant={'plain'}
+                borderRadius={"md"}
+                aria-label="Send image"
+                color={"fg.muted"}
+            >
+                <LuLink />
+            </IconButton>
+            <Tooltip
+                content={"New conversation"}
+                aria-label={"New conversation"}
+            >
+                <IconButton
+                    variant={'plain'}
+                    size={"md"}
+                    borderRadius={"md"}
+                    aria-label="Send image"
+                    onClick={() => resetAll()}
+                >
+                    <IoIosAdd />
+                </IconButton>
+            </Tooltip>
+        </HStack>
+    ));
+    StartElement.displayName = "StartElement";
+
+    const EndElement = React.memo(() => (
+        <IconButton
+            size={"md"}
+            borderRadius={"md"}
+            type="submit"
+            aria-label="Send message"
+            onClick={
+                isLoading ? stop : undefined
+            }
+        >
+            {isLoading ? <IoStop /> : <FaPaperPlane />}
+        </IconButton>
+    ));
+    EndElement.displayName = "EndElement";
+
+    const resetAll = () => {
+        setMessages && setMessages([]);
+        handleInputChange({ target: { value: '' } } as any);
+    }
 
     React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     return (
-        <Flex {...props} w={'full'} h={'full'} direction={'column'} gap={'6'} overflow={'hidden'}>
-            <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"}>
-                {messages.length === 0 && (
-                    <MessageIntro
-                        handleInputChange={handleInputChange}
-                        setMessages={setMessages}
-                    />
-                )}
-                {messages.map((message, index) => {
-                    console.log(message);
-                    return (
+        <Center {...props} >
+            <Flex w={'full'} maxW={"50vw"} h={'full'} flexDirection={'column'} gap={'6'} overflow={'hidden'} align={'center'}>
+                <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"}>
+                    {messages.length === 0 && (
+                        <MessageIntro
+                            handleInputChange={handleInputChange}
+                            setMessages={setMessages}
+                        />
+                    )}
+                    {messages.map((message, index) => (
                         message.role === 'user' ? (
                             <MessageUser key={index} message={message} />
                         ) : (
-                            <MessageBot key={index} message={message} />
+                            <MessageBot key={index} message={message}  isLoading={isLoading && index === messages.length - 1} />
                         )
-                    );
-                })}
-
-                <div ref={messagesEndRef} />
-            </Flex>
-            <Flex direction={'column'} gap={'4'}>
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage({
-                        role: 'user',
-                        content: input,
-                        createdAt: new Date(),
-                    });
-                }}>
-                    <Group w={'full'} gap={'4'}>
-                        <InputGroup
+                    ))}
+                    <div ref={messagesEndRef} />
+                </Flex>
+                <Flex direction={'column'} gap={'4'} w={"full"}>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        sendMessage({
+                            role: 'user',
+                            content: input,
+                            createdAt: new Date(),
+                        });
+                    }}>
+                        <Group
                             w={'full'}
-                            startElement={
-                                <HStack>
-                                    <Icon>
-                                        <InputImage />
-                                    </Icon>
-                                </HStack>
-                            }
+                            gap={'4'}
                             bg={'bg.muted'}
+                            p={'2'}
+                            borderRadius={'lg'}
                         >
+                            <StartElement />
                             <Input
+                                border={'none'}
+                                _focus={{
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                bg={'transparent'}
                                 w={'full'}
                                 value={input}
-                                placeholder="Send a message..."
+                                placeholder="Ask something ..."
                                 onChange={handleInputChange}
                                 disabled={isPending}
                             />
-                        </InputGroup>
-                        <IconButton
-                            type="submit"
-                            aria-label="Send message"
-                            loading={isPending}
-                        >
-                            <BiPaperPlane />
-                        </IconButton>
-                    </Group>
-                </form>
-                <NoticeMessages />
+                            <EndElement />
+                        </Group>
+                    </form>
+                    <NoticeMessages />
+                </Flex>
             </Flex>
-        </Flex>
+        </Center>
     );
 }
 
@@ -278,7 +327,6 @@ interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
     const { message } = props;
-
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
             <Box
@@ -310,9 +358,14 @@ MessageUser.displayName = "MessageUser";
 
 interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
+    error?: any;
+    isLoading?: boolean;
+    funcs?: {
+        reload: () => void;
+    }
 }
 const MessageBot: React.FC<MessageBotProps> = (props) => {
-    const { message } = props;
+    const { message, isLoading } = props;
 
     const BotAvatar = () => {
         return (
@@ -370,6 +423,7 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
             </Markdown>
         )
     }
+
     return (
         <Flex direction={'column'} gap={'1'} justify={"flex-start"} {...props}>
             <Box
@@ -384,8 +438,23 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                 <Box color={'fg'} textAlign={'left'}>
                     <BotAvatar />
                     <MessageRender />
+                    {!isLoading &&
+                        <>
+                            <MessageRender />
+                        </>
+                    }
                 </Box>
             </Box>
+            {
+                isLoading && (
+                    <Group>
+                        <Spinner size={'md'} />
+                        <Text color={'fg.muted'}>
+                            Bullcast is thinking, please wait a moment ...
+                        </Text>
+                    </Group>
+                )
+            }
 
             <Flex justify={'start'} align={'center'} w={'full'} gap={'1'}>
                 <Text fontSize={'xs'} color={'fg.muted'}>
@@ -422,24 +491,6 @@ const MessageTools: React.FC<MessageToolsProps> = (props) => {
     );
 }
 MessageTools.displayName = "MessageTools";
-
-interface MessageAttachmentProps extends React.HTMLAttributes<HTMLDivElement> {
-    attachment: NonNullable<Message['experimental_attachments']>[number]
-}
-const MessageAttachment: React.FC<MessageAttachmentProps> = (props) => {
-    const { attachment } = props;
-
-    return (
-        <Box {...props}>
-            <Text>
-                {attachment.contentType}
-            </Text>
-            <Text>
-                {attachment.url}
-            </Text>
-        </Box>
-    );
-}
 
 
 interface MessageIntroProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -495,7 +546,7 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                 <Logo />
             </Icon>
             <Text fontSize={'4xl'} fontWeight={'bold'} textAlign={'center'}>
-                Welcome to <Span color={'primary'}>{APP_NAME}</Span> AI Chatbox!
+                Welcome to <Span color={'primary'}>{APP_NAME}</Span> <br /> AI Chatbox!
             </Text>
             <Text fontSize={'md'} color={'fg.muted'} textAlign={'center'}>
                 This is the hint message to help users know how to use!

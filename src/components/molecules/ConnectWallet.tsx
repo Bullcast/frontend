@@ -18,6 +18,7 @@ export const ConnectWallet: React.FC<Props> = (props) => {
         <ConnectModal
             trigger={
                 <Button
+                    size={"md"}
                     borderColor={"primary.5"}
                     color={"primary"}
                     variant={"outline"}

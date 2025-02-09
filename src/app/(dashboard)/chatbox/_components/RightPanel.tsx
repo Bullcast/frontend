@@ -7,12 +7,6 @@ export const RightPanel: React.FC<Props> = (props) => {
     return (
         <Container as="aside" {...props}>
             <Flex justify="end" align="start" h="full">
-                <Button>
-                    Add new chat
-                    <Icon size={"md"}>
-                        <IoAddOutline />
-                    </Icon>
-                </Button>
             </Flex>
         </Container>
     );
