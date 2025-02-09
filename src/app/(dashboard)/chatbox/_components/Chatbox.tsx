@@ -11,6 +11,8 @@ import RemarkGfm from 'remark-gfm';
 import RehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 import { InputGroup } from '@/components/ui/input-group';
 // import { formatTime } from '@/libs/helper';
@@ -23,6 +25,7 @@ interface Message {
     id: number; // Unique ID for each message
     role: 'user' | 'assistant';  // Role to determine who sent the message
     content: string;  // Content of the message
+    createdAt?: Date
 }
 
 interface Props extends FlexProps { }
@@ -30,46 +33,52 @@ export const Chatbox: React.FC<Props> = (props) => {
     const [messages, setMessages] = useState<Message[]>([]); // Now TypeScript knows what type is inside messages
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-	const account = useCurrentAccount();
-    const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!input.trim()) return;
-
-        if (!account) {
+    const account = useCurrentAccount();
+    const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction({
+        onSuccess: (result) => {
+            console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
             setMessages(prev => [...prev, {
                 id: messages.length ? messages[messages.length - 1].id + 1 : 0,
                 role: 'assistant',
-                content: 'Please connect your wallet to continue.'
+                content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
             }]);
-            return;            
-        }
+        },
+        onError: (error) => {
+            console.error('Error:', error);
+            setMessages(prev => [...prev, {
+                id: Math.random(),
+                role: 'assistant',
+                content: 'Sorry, there was an error processing your request.'
+            }]);
+        },
+    });
+    const {
+        mutate: sendMessage,
+        isPending,
+        isError,
+        isSuccess,
+        reset,
+    } = useMutation({
+        mutationKey: ['sendMessage', input],
+        mutationFn: async (newMessage: Message): Promise<Message[]> => {
+            if (!newMessage.content.trim()) return [];
+            if (!account) throw new Error('Please connect your wallet to continue.');
 
-
-        const id = messages.length ? messages[messages.length - 1].id + 1 : 0;
-        const userMessage: Message = { id, role: 'user', content: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
-        setIsLoading(true);
-
-        try {
-            const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        messages: [...messages, userMessage],
-                        wallet: account.address,
-                    }),
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch');
-
-            const data = await response.json();
+            const response = await axios.post('/api/chat', {
+                messages: [...messages, newMessage],
+                wallet: account.address,
+            })
+            return response.data;
+        },
+        onMutate: (newMessage: Message) => {
+            const id = Math.random();
+            const userMessage: Message = { id, role: 'user', content: newMessage.content };
+            setMessages(prev => [...prev, userMessage]);
+            setInput('');
+        },
+        onSuccess: (data: any) => {
             for (let i = 0; i < data.length; i++) {
-                data[i].id = id + i + 1;
+                data[i].id = messages.length ? messages[messages.length - 1].id + 1 : 0;
                 if (i + 1 < data.length && data[i].ptb) {
                     const ptb = Buffer.from(data[i].ptb);
                     const payloadUint8Array = new Uint8Array(ptb);
@@ -79,34 +88,97 @@ export const Chatbox: React.FC<Props> = (props) => {
                         {
                             transaction: tx,
                         },
-                        {
-                            onSuccess: (result) => {
-                                console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
-                                setMessages(prev => [...prev, {
-                                    id: messages.length ? messages[messages.length - 1].id + 1 : 0,
-                                    role: 'assistant',
-                                    content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
-                                }]);
-                            },
-                        },
                     );
                     delete data[i].ptb;
                 }
             }
-            setMessages(prev => [...prev, ...data]);
-        } catch (error) {
-            console.error('Error:', error);
-            setMessages(prev => [...prev, {
-                id: messages.length ? messages[messages.length - 1].id + 1 : 0,
-                role: 'assistant',
-                content: 'Sorry, there was an error processing your request.'
-            }]);
-        } finally {
-            setIsLoading(false);
+        },
+        onError: (error) => {
+            if (error instanceof Error) {
+                setMessages(prev => [...prev, {
+                    id: Math.random(),
+                    role: 'assistant',
+                    content: error.message || 'Sorry, there was an error processing your request.',
+                    createdAt: new Date(),
+                }]);
+            }
         }
-    };
+    })
 
-    const handleInputChange = (e) => {
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     if (!input.trim()) return;
+
+    //     if (!account) {
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Please connect your wallet to continue.'
+    //         }]);
+    //         return;
+    //     }
+
+
+    //     const id = messages.length ? messages[messages.length - 1].id + 1 : 0;
+    //     const userMessage: Message = { id, role: 'user', content: input };
+    //     setMessages(prev => [...prev, userMessage]);
+    //     setInput('');
+    //     setIsLoading(true);
+
+    //     try {
+    //         const response = await fetch('/api/chat', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //             },
+    //             body: JSON.stringify({
+    //                 messages: [...messages, userMessage],
+    //                 wallet: account.address,
+    //             }),
+    //         });
+
+    //         if (!response.ok) throw new Error('Failed to fetch');
+
+    //         const data = await response.json();
+    //         for (let i = 0; i < data.length; i++) {
+    //             data[i].id = id + i + 1;
+    //             if (i + 1 < data.length && data[i].ptb) {
+    //                 const ptb = Buffer.from(data[i].ptb);
+    //                 const payloadUint8Array = new Uint8Array(ptb);
+    //                 const tx = Transaction.from(payloadUint8Array);
+    //                 tx.setGasBudget(150000000);
+    //                 signAndExecuteTransaction(
+    //                     {
+    //                         transaction: tx,
+    //                     },
+    //                     {
+    //                         onSuccess: (result) => {
+    //                             console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
+    //                             setMessages(prev => [...prev, {
+    //                                 id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //                                 role: 'assistant',
+    //                                 content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+    //                             }]);
+    //                         },
+    //                     },
+    //                 );
+    //                 delete data[i].ptb;
+    //             }
+    //         }
+    //         setMessages(prev => [...prev, ...data]);
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Sorry, there was an error processing your request.'
+    //         }]);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
     };
 
@@ -157,7 +229,15 @@ export const Chatbox: React.FC<Props> = (props) => {
                 <div ref={messagesEndRef} />
             </Flex>
             <Flex direction={'column'} gap={'4'}>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage({
+                        id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+                        role: 'user',
+                        content: input,
+                        createdAt: new Date(),
+                    });
+                }}>
                     <Group w={'full'} gap={'4'}>
                         <InputGroup
                             w={'full'}
@@ -175,13 +255,13 @@ export const Chatbox: React.FC<Props> = (props) => {
                                 value={input}
                                 placeholder="Send a message..."
                                 onChange={handleInputChange}
-                                disabled={isLoading}
+                                disabled={isPending}
                             />
                         </InputGroup>
                         <IconButton
                             type="submit"
                             aria-label="Send message"
-                            loading={isLoading}
+                            loading={isPending}
                         >
                             <BiPaperPlane />
                         </IconButton>
