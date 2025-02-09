@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     if (!apiUrl) {
         return NextResponse.error();
     }
-
+    
     const result = await fetch(apiUrl, {
         method: 'POST',
         headers: {

@@ -13,6 +13,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { marked } from "marked";
 
 import { InputGroup } from '@/components/ui/input-group';
 // import { formatTime } from '@/libs/helper';
@@ -22,7 +23,6 @@ import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-ki
 import { Transaction } from '@mysten/sui/transactions';
 
 interface Message {
-    id: number; // Unique ID for each message
     role: 'user' | 'assistant';  // Role to determine who sent the message
     content: string;  // Content of the message
     createdAt?: Date
@@ -38,15 +38,14 @@ export const Chatbox: React.FC<Props> = (props) => {
         onSuccess: (result) => {
             console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
             setMessages(prev => [...prev, {
-                id: messages.length ? messages[messages.length - 1].id + 1 : 0,
                 role: 'assistant',
                 content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+                createdAt: new Date(),
             }]);
         },
         onError: (error) => {
             console.error('Error:', error);
             setMessages(prev => [...prev, {
-                id: Math.random(),
                 role: 'assistant',
                 content: 'Sorry, there was an error processing your request.'
             }]);
@@ -55,9 +54,6 @@ export const Chatbox: React.FC<Props> = (props) => {
     const {
         mutate: sendMessage,
         isPending,
-        isError,
-        isSuccess,
-        reset,
     } = useMutation({
         mutationKey: ['sendMessage', input],
         mutationFn: async (newMessage: Message): Promise<Message[]> => {
@@ -71,14 +67,17 @@ export const Chatbox: React.FC<Props> = (props) => {
             return response.data;
         },
         onMutate: (newMessage: Message) => {
-            const id = Math.random();
-            const userMessage: Message = { id, role: 'user', content: newMessage.content };
+            const userMessage: Message = {
+                role: 'user',
+                content: newMessage.content,
+                createdAt: new Date(),
+            };
             setMessages(prev => [...prev, userMessage]);
             setInput('');
         },
         onSuccess: (data: any) => {
             for (let i = 0; i < data.length; i++) {
-                data[i].id = messages.length ? messages[messages.length - 1].id + 1 : 0;
+                // data[i].id = messages.length ? messages[messages.length - 1].id + 1 : 0;
                 if (i + 1 < data.length && data[i].ptb) {
                     const ptb = Buffer.from(data[i].ptb);
                     const payloadUint8Array = new Uint8Array(ptb);
@@ -92,6 +91,8 @@ export const Chatbox: React.FC<Props> = (props) => {
                     delete data[i].ptb;
                 }
             }
+
+            setMessages(prev => [...prev, ...data]);
         },
         onError: (error) => {
             if (error instanceof Error) {
@@ -215,13 +216,13 @@ export const Chatbox: React.FC<Props> = (props) => {
                         setMessages={setMessages}
                     />
                 )}
-                {messages.map(message => {
+                {messages.map((message, index) => {
                     console.log(message);
                     return (
                         message.role === 'user' ? (
-                            <MessageUser key={message.id} message={message} />
+                            <MessageUser key={index} message={message} />
                         ) : (
-                            <MessageBot key={message.id} message={message} />
+                            <MessageBot key={index} message={message} />
                         )
                     );
                 })}
@@ -232,7 +233,6 @@ export const Chatbox: React.FC<Props> = (props) => {
                 <form onSubmit={(e) => {
                     e.preventDefault();
                     sendMessage({
-                        id: messages.length ? messages[messages.length - 1].id + 1 : 0,
                         role: 'user',
                         content: input,
                         createdAt: new Date(),
@@ -361,7 +361,12 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                     },
                 }}
             >
-                {message.content}
+                {
+                    message.content
+                        .trim()
+                        .replace(/\n/g, '<br />')
+                        .replace(/```([a-zA-Z]+)?\n([\s\S]+?)\n```/g, '```$1\n$2\n```')
+                }
             </Markdown>
         )
     }
