@@ -1,3 +1,5 @@
+"use client";
+
 import type { ButtonProps as ChakraButtonProps } from "@chakra-ui/react"
 import {
   AbsoluteCenter,
@@ -31,10 +33,10 @@ export interface ButtonProps extends ChakraButtonProps, ButtonLoadingProps, Butt
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(props, ref) {
-    const { loading, disabled, loadingText, children, size, ...rest } = props
+    const { loading, disabled, loadingText, children, ...rest } = props
     const recipe = useRecipe({ recipe: buttonRecipe })
 
-    const styles = recipe({ size, ...rest })
+    const styles = recipe({ ...rest })
 
     return (
       <ChakraButton disabled={loading || disabled} css={styles} ref={ref} px={"4"} {...rest}>

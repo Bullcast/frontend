@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/molecules";
 import { Chatbox } from "./_components/Chatbox";
 import { LeftPanel } from "./_components/LeftPanel";
 import { RightPanel } from "./_components/RightPanel";
+import { Wallpaper } from "./_components/Wallpaper";
 
 
 export default function Prediction() {
@@ -15,9 +16,9 @@ export default function Prediction() {
                 <Flex direction={"row"} flex="1" gap={"6"}>
                     <LeftPanel flex={1} />
                     <Chatbox flex={2} />
-                    <RightPanel flex={1} />
                 </Flex>
             </main>
+            <Wallpaper />
         </Flex>
     );
 }

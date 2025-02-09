@@ -43,7 +43,7 @@ export const InputGroup = React.forwardRef<HTMLDivElement, InputGroupProps>(
           ...children.props,
         })}
         {endElement && (
-          <InputElement placement="end" {...endElementProps}>
+          <InputElement mr={"2"} placement="end" {...endElementProps}>
             {endElement}
           </InputElement>
         )}

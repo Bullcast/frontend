@@ -1,27 +1,214 @@
 'use client';
 
-import { Box, Flex, FlexProps, Group, HStack, Icon, IconButton, Input, Link, Span, Text } from '@chakra-ui/react';
-import { useChat, Message } from 'ai/react';
-import React from 'react';
-import { BiPaperPlane } from 'react-icons/bi';
-import { FaRegImage } from 'react-icons/fa';
-import { IoCopyOutline, IoReload } from 'react-icons/io5';
+import { Box, Center, CenterProps, Flex, Group, HStack, Icon, IconButton, Input, Link, Span, Spinner, Text } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { FaPaperPlane, FaRegImage } from 'react-icons/fa';
+import { IoCopyOutline, IoReload, IoStop } from 'react-icons/io5';
 import { MdOutlineLocalFireDepartment, MdOutlineRocket } from 'react-icons/md';
 import Markdown from 'react-markdown'
 import RemarkGfm from 'remark-gfm';
 import RehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { marked } from "marked";
 
 import { InputGroup } from '@/components/ui/input-group';
 import { formatTime } from '@/libs/helper';
 import { Logo } from '@/components/brand';
 import { APP_NAME } from '@/utils/constants';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 
-interface Props extends FlexProps { }
+interface Message {
+    role: 'user' | 'assistant';  // Role to determine who sent the message
+    content: string;  // Content of the message
+    createdAt?: Date
+}
+import { LuLink } from 'react-icons/lu';
+import { IoIosAdd } from 'react-icons/io';
+import { Tooltip } from '@/components/ui/tooltip';
+
+interface Props extends CenterProps { }
 export const Chatbox: React.FC<Props> = (props) => {
-    const { messages, input, handleSubmit, handleInputChange, isLoading, error, reload, setMessages } =
-        useChat();
+    const [messages, setMessages] = useState<Message[]>([]); // Now TypeScript knows what type is inside messages
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [isExecuting, setIsExecuting] = useState(false);
+    const account = useCurrentAccount();
+    const {
+        mutate: signAndExecuteTransaction,
+        isPending: isSigning,
+    } = useSignAndExecuteTransaction({
+        onSuccess: (result) => {
+            console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+                createdAt: new Date(),
+            }]);
+        },
+        onError: (error) => {
+            console.error('Error:', error);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, there was an error processing your request.'
+            }]);
+        },
+    });
+
+    const {
+        mutate: sendMessage,
+        isPending: isSending,
+        isSuccess: isSent,
+        reset: resetSendMessage,
+    } = useMutation({
+        mutationKey: ['sendMessage', input],
+        mutationFn: async (newMessage: Message): Promise<Message[]> => {
+            if (!newMessage.content.trim()) return [];
+            if (!account) return [];
+
+            const response = await axios.post('/api/chat', {
+                messages: [...messages, newMessage],
+                wallet: account.address,
+            })
+            return response.data;
+        },
+        onMutate: (newMessage: Message) => {
+            if (!account) throw new Error('Please connect your wallet to continue 😊');
+
+            const userMessage: Message = {
+                role: 'user',
+                content: newMessage.content,
+                createdAt: new Date(),
+            };
+            const preBotMessage: Message = {
+                role: 'assistant',
+                content: 'Bullcast is thinking, please wait a moment ...',
+                createdAt: new Date(),
+            };
+            setMessages(prev => [...prev, userMessage, preBotMessage]);
+            setInput('');
+            setIsLoading(true);
+        },
+        onSuccess: (data: any) => {
+            setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages.pop();
+                for (let i = 0; i < data.length; i++) {
+                    if (i + 1 < data.length && data[i].ptb) {
+                        const ptb = Buffer.from(data[i].ptb);
+                        const payloadUint8Array = new Uint8Array(ptb);
+                        const tx = Transaction.from(payloadUint8Array);
+                        tx.setGasBudget(150000000);
+                        signAndExecuteTransaction(
+                            {
+                                transaction: tx,
+                            },
+                        );
+                        delete data[i].ptb;
+                    }
+                }
+                data.forEach((item: any, index: number) => {
+                    item.createdAt = new Date();
+                    item.role = 'assistant';
+                });
+
+                return [...newMessages, ...data];
+            });
+            setIsLoading(false);
+        },
+        onError: (error) => {
+            if (error instanceof Error) {
+                setMessages(prev => [...prev, {
+                    id: Math.random(),
+                    role: 'assistant',
+                    content: error.message || 'Sorry, there was an error processing your request.',
+                    createdAt: new Date(),
+                }]);
+            }
+        }
+    })
+
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     if (!input.trim()) return;
+
+    //     if (!account) {
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Please connect your wallet to continue.'
+    //         }]);
+    //         return;
+    //     }
+
+
+    //     const id = messages.length ? messages[messages.length - 1].id + 1 : 0;
+    //     const userMessage: Message = { id, role: 'user', content: input };
+    //     setMessages(prev => [...prev, userMessage]);
+    //     setInput('');
+    //     setIsLoading(true);
+
+    //     try {
+    //         const response = await fetch('/api/chat', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //             },
+    //             body: JSON.stringify({
+    //                 messages: [...messages, userMessage],
+    //                 wallet: account.address,
+    //             }),
+    //         });
+
+    //         if (!response.ok) throw new Error('Failed to fetch');
+
+    //         const data = await response.json();
+    //         for (let i = 0; i < data.length; i++) {
+    //             data[i].id = id + i + 1;
+    //             if (i + 1 < data.length && data[i].ptb) {
+    //                 const ptb = Buffer.from(data[i].ptb);
+    //                 const payloadUint8Array = new Uint8Array(ptb);
+    //                 const tx = Transaction.from(payloadUint8Array);
+    //                 tx.setGasBudget(150000000);
+    //                 signAndExecuteTransaction(
+    //                     {
+    //                         transaction: tx,
+    //                     },
+    //                     {
+    //                         onSuccess: (result) => {
+    //                             console.log('Transaction executed:', `https://suivision.xyz/txblock/${result.digest}`);
+    //                             setMessages(prev => [...prev, {
+    //                                 id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //                                 role: 'assistant',
+    //                                 content: 'Transaction executed successfully. ' + `https://suivision.xyz/txblock/${result.digest}`,
+    //                             }]);
+    //                         },
+    //                     },
+    //                 );
+    //                 delete data[i].ptb;
+    //             }
+    //         }
+    //         setMessages(prev => [...prev, ...data]);
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         setMessages(prev => [...prev, {
+    //             id: messages.length ? messages[messages.length - 1].id + 1 : 0,
+    //             role: 'assistant',
+    //             content: 'Sorry, there was an error processing your request.'
+    //         }]);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+    };
+
+
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
     const InputImage = React.memo(() => (
@@ -35,68 +222,130 @@ export const Chatbox: React.FC<Props> = (props) => {
                 This is the hint message to help users know how to use!
             </Text>
             <Text fontSize={'sm'}>
-                @Copyright by BullCast | 2024
+                @Copyright by BullCast | 2025
             </Text>
         </Flex>
     ));
     NoticeMessages.displayName = "NoticeMessages";
+
+    const StartElement = React.memo(() => (
+        <HStack
+            w={'fit-content'}
+            gap={2}
+            borderRadius={'md'}
+            bg={'bg.emphasized'}
+        >
+            <IconButton
+                size={"md"}
+                variant={'plain'}
+                borderRadius={"md"}
+                aria-label="Send image"
+                color={"fg.muted"}
+            >
+                <LuLink />
+            </IconButton>
+            <Tooltip
+                content={"New conversation"}
+                aria-label={"New conversation"}
+            >
+                <IconButton
+                    variant={'plain'}
+                    size={"md"}
+                    borderRadius={"md"}
+                    aria-label="Send image"
+                    onClick={() => resetAll()}
+                >
+                    <IoIosAdd />
+                </IconButton>
+            </Tooltip>
+        </HStack>
+    ));
+    StartElement.displayName = "StartElement";
+
+    const EndElement = React.memo(() => (
+        <IconButton
+            size={"md"}
+            borderRadius={"md"}
+            type="submit"
+            aria-label="Send message"
+            onClick={
+                isLoading ? stop : undefined
+            }
+        >
+            {isLoading ? <IoStop /> : <FaPaperPlane />}
+        </IconButton>
+    ));
+    EndElement.displayName = "EndElement";
+
+    const resetAll = () => {
+        setMessages && setMessages([]);
+        handleInputChange({ target: { value: '' } } as any);
+    }
+
+    const stop = () => {
+
+    }
 
     React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     return (
-        <Flex {...props} w={'full'} h={'full'} direction={'column'} gap={'6'} overflow={'hidden'}>
-            <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"}>
-                {messages.length === 0 && (
-                    <MessageIntro
-                        handleInputChange={handleInputChange}
-                        setMessages={setMessages}
-                    />
-                )}
-                {messages.map(message => (
-                    message.role === 'user' ? (
-                        <MessageUser key={message.id} message={message} />
-                    ) : (
-                        <MessageBot key={message.id} message={message} error={error} funcs={{ reload }} />
-                    )
-                ))}
-                <div ref={messagesEndRef} />
-            </Flex>
-            <Flex direction={'column'} gap={'4'}>
-                <form onSubmit={handleSubmit}>
-                    <Group w={'full'} gap={'4'}>
-                        <InputGroup
+        <Center {...props} >
+            <Flex w={'full'} maxW={"50vw"} h={'full'} flexDirection={'column'} gap={'6'} overflow={'hidden'} align={'center'}>
+                <Flex direction={'column'} gap={'4'} flex={1} overflow={"scroll"} w={"full"}>
+                    {messages.length === 0 && (
+                        <MessageIntro
+                            handleInputChange={handleInputChange}
+                            setMessages={setMessages}
+                        />
+                    )}
+                    {messages.map((message, index) => (
+                        message.role === 'user' ? (
+                            <MessageUser key={index} message={message} />
+                        ) : (
+                            <MessageBot key={index} message={message} isLoading={isLoading && index === messages.length - 1} />
+                        )
+                    ))}
+                    <div ref={messagesEndRef} />
+                </Flex>
+                <Flex direction={'column'} gap={'4'} w={"full"}>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        sendMessage({
+                            role: 'user',
+                            content: input,
+                            createdAt: new Date(),
+                        });
+                    }}>
+                        <Group
                             w={'full'}
-                            startElement={
-                                <HStack>
-                                    <Icon>
-                                        <InputImage />
-                                    </Icon>
-                                </HStack>
-                            }
+                            gap={'4'}
                             bg={'bg.muted'}
+                            p={'2'}
+                            borderRadius={'lg'}
                         >
+                            <StartElement />
                             <Input
+                                border={'none'}
+                                _focus={{
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                bg={'transparent'}
                                 w={'full'}
                                 value={input}
-                                placeholder="Send a message..."
+                                placeholder="Ask something ..."
                                 onChange={handleInputChange}
                                 disabled={isLoading}
                             />
-                        </InputGroup>
-                        <IconButton
-                            type="submit"
-                            aria-label="Send message"
-                            loading={isLoading}
-                        >
-                            <BiPaperPlane />
-                        </IconButton>
-                    </Group>
-                </form>
-                <NoticeMessages />
+                            <EndElement />
+                        </Group>
+                    </form>
+                    <NoticeMessages />
+                </Flex>
             </Flex>
-        </Flex>
+        </Center>
     );
 }
 
@@ -105,7 +354,10 @@ interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
     const { message } = props;
+<<<<<<< HEAD
     
+=======
+>>>>>>> feat/pages/chatbox
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
             <Box
@@ -137,13 +389,14 @@ MessageUser.displayName = "MessageUser";
 
 interface MessageBotProps extends React.HTMLAttributes<HTMLDivElement> {
     message: Message;
-    error: any;
-    funcs: {
+    error?: any;
+    isLoading?: boolean;
+    funcs?: {
         reload: () => void;
     }
 }
 const MessageBot: React.FC<MessageBotProps> = (props) => {
-    const { message, error, funcs } = props;
+    const { message, funcs, isLoading } = props;
 
     const BotAvatar = () => {
         return (
@@ -192,10 +445,16 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
                     },
                 }}
             >
-                {message.content}
+                {
+                    message.content
+                        .trim()
+                        .replace(/\n/g, '<br />')
+                        .replace(/```([a-zA-Z]+)?\n([\s\S]+?)\n```/g, '```$1\n$2\n```')
+                }
             </Markdown>
         )
     }
+
     return (
         <Flex direction={'column'} gap={'1'} justify={"flex-start"} {...props}>
             <Box
@@ -209,28 +468,31 @@ const MessageBot: React.FC<MessageBotProps> = (props) => {
             >
                 <Box color={'fg'} textAlign={'left'}>
                     <BotAvatar />
-                    <MessageRender />
-                    {message.experimental_attachments && (
-                        message.experimental_attachments.map((attachment, index) => (
-                            <MessageAttachment key={index} attachment={attachment} />
-                        ))
-                    )}
+                    {!isLoading &&
+                        <>
+                            <MessageRender />
+                        </>
+                    }
                 </Box>
             </Box>
             {
-                error && (
-                    <Text color={'danger'}>
-                        {error.message}
-                    </Text>
+                isLoading && (
+                    <Group>
+                        <Spinner size={'md'} />
+                        <Text color={'fg.muted'}>
+                            Bullcast is thinking, please wait a moment ...
+                        </Text>
+                    </Group>
                 )
             }
+
             <Flex justify={'start'} align={'center'} w={'full'} gap={'1'}>
                 <Text fontSize={'xs'} color={'fg.muted'}>
                     {formatTime(message.createdAt)}
                 </Text>
                 <MessageTools
+                    reload={funcs?.reload}
                     copyContent={message.content}
-                    reload={() => funcs.reload()}
                 />
             </Flex>
         </Flex>
@@ -261,24 +523,6 @@ const MessageTools: React.FC<MessageToolsProps> = (props) => {
 }
 MessageTools.displayName = "MessageTools";
 
-interface MessageAttachmentProps extends React.HTMLAttributes<HTMLDivElement> {
-    attachment: NonNullable<Message['experimental_attachments']>[number]
-}
-const MessageAttachment: React.FC<MessageAttachmentProps> = (props) => {
-    const { attachment } = props;
-
-    return (
-        <Box {...props}>
-            <Text>
-                {attachment.contentType}
-            </Text>
-            <Text>
-                {attachment.url}
-            </Text>
-        </Box>
-    );
-}
-
 
 interface MessageIntroProps extends React.HTMLAttributes<HTMLDivElement> {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -304,9 +548,13 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                     transition: 'all 0.3s',
                 }}
                 onClick={() => {
+<<<<<<< HEAD
                     if (handleInputChange) {
                         handleInputChange({ target: { value: demoContent } } as any);
                     }
+=======
+                    // handleInputChange && handleInputChange({ target: { value: demoContent } } as any);
+>>>>>>> feat/pages/chatbox
                 }}
                 {...props}
             >
@@ -335,7 +583,7 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                 <Logo />
             </Icon>
             <Text fontSize={'4xl'} fontWeight={'bold'} textAlign={'center'}>
-                Welcome to <Span color={'primary'}>{APP_NAME}</Span> AI Chatbox!
+                Welcome to <Span color={'primary'}>{APP_NAME}</Span> <br /> AI Chatbox!
             </Text>
             <Text fontSize={'md'} color={'fg.muted'} textAlign={'center'}>
                 This is the hint message to help users know how to use!

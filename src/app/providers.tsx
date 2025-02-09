@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider as UIProvider } from '@/components/ui/provider';
 
 const { networkConfig } = createNetworkConfig({
-    localnet: { url: getFullnodeUrl('localnet') },
     mainnet: { url: getFullnodeUrl('mainnet') },
 });
 const queryClient = new QueryClient();
@@ -18,7 +17,7 @@ export default function Provider({
 }>) {
     return (
         <QueryClientProvider client={queryClient}>
-            <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
+            <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
                 <WalletProvider>
                     <UIProvider forcedTheme='dark'>{children}</UIProvider>
                 </WalletProvider>
