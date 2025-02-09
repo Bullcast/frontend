@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Group, Image } from "@chakra-ui/react"
-import { DotLottieReact, DotLottieWorkerReact } from "@lottiefiles/dotlottie-react"
+import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 
 import styles from "../page.module.css"
 

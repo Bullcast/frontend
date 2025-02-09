@@ -354,10 +354,6 @@ interface MessageUserProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 const MessageUser: React.FC<MessageUserProps> = (props) => {
     const { message } = props;
-<<<<<<< HEAD
-    
-=======
->>>>>>> feat/pages/chatbox
     return (
         <Flex direction={'column'} gap={'1'} justify={'flex-end'} align={"end"} {...props}>
             <Box
@@ -548,13 +544,7 @@ export const MessageIntro: React.FC<MessageIntroProps> = (props) => {
                     transition: 'all 0.3s',
                 }}
                 onClick={() => {
-<<<<<<< HEAD
-                    if (handleInputChange) {
-                        handleInputChange({ target: { value: demoContent } } as any);
-                    }
-=======
                     // handleInputChange && handleInputChange({ target: { value: demoContent } } as any);
->>>>>>> feat/pages/chatbox
                 }}
                 {...props}
             >
