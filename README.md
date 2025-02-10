@@ -4,11 +4,15 @@ description: 'Bullcast: AI-driven bullish price prediction for next-gen DeFAI au
 
 # 👋 Welcome to Bullcast
 
-Bullcast: AI-driven bullish price prediction for next-gen DeFAI automation. 🚀
-
 ## Overview
 
 Bullcast is an AI-powered DeFi assistant that helps users automate and optimize their trading and investment strategies. **Its core strength lies in its AI-driven price prediction model, which enables smarter investment decisions.** By leveraging this AI technology, Bullcast simplifies DeFi interactions and lowers the barrier to entry for users.
+
+<figure><img src="https://github.com/Bullcast/docs/blob/main/.gitbook/assets/image%20(3).png" alt=""><figcaption><p>Our prediction model outperform</p></figcaption></figure>
+
+<figure><img src="https://github.com/Bullcast/docs/blob/main/.gitbook/assets/image%20(5).png" alt=""><figcaption></figcaption></figure>
+
+<figure><img src="https://github.com/Bullcast/docs/blob/main/.gitbook/assets/image%20(6).png" alt=""><figcaption></figcaption></figure>
 
 With Bullcast, users can forecast price movements, automate token swaps, provide liquidity, and engage in yield farming. The AI model processes real-time market data, offering actionable insights and automation capabilities on the **$SUI** blockchain. Developers can also integrate Bullcast’s API to access its prediction engine and DeFi automation tools.
 
@@ -22,8 +26,8 @@ With Bullcast, users can forecast price movements, automate token swaps, provide
   * ✅ **Swaps**
   * ✅ **API for Prediction**
   * ✅ **Feeds Price Data from Pyth Network Oracle**
+  * ✅**Yield Farming (Lending & Borrowing)**
   * 🚀**Providing Liquidity (Proof of Concept)**
-  * 🚀**Yield Farming (Proof of Concept)**
   * 🚀**Auto-Investment with Forecast model & Orcale like Pyth Network (Proof of Concept)**
 * 🚀 **Prediction Challenges & Incentive Mechanism**: Users can participate in daily, weekly, and monthly prediction challenges. If their price predictions are more accurate than the AI model, they earn tokens as rewards. Otherwise, token will be burnt from Treasury. This creates an incentive-based "**Predict-to-Earn**" mechanism **(Proof of Concept)**.
 
